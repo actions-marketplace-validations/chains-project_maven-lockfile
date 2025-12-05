@@ -6,8 +6,7 @@ import io.github.chains_project.maven_lockfile.graph.DependencyNode;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.List;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
@@ -18,26 +17,47 @@ import java.util.Set;
  */
 public class LockFile {
 
-    @SerializedName("artifactID")
+    @SerializedName(
+            value = "artifactId",
+            alternate = {"artifactID"})
     private final ArtifactId name;
 
-    @SerializedName("groupID")
+    @SerializedName(
+            value = "groupId",
+            alternate = {"groupID"})
     private final GroupId groupId;
 
     @SerializedName("version")
     private final VersionNumber version;
 
+    @SerializedName("pom")
+    private final Pom pom;
+
     @SerializedName("lockFileVersion")
+    @SuppressWarnings("FieldMayBeFinal")
     private int lockfileVersion = 1; // TODO: we normally should create an enum with Name -> Numbers
 
-    private List<DependencyNode> dependencies;
-    private List<PackagedDependency> packagedDependencies;
+    private final Set<DependencyNode> dependencies;
 
-    public LockFile(GroupId groupId, ArtifactId name, VersionNumber versionNumber, List<DependencyNode> dependencies) {
-        this.dependencies = dependencies;
+    private final Set<MavenPlugin> mavenPlugins;
+
+    private final MetaData metaData;
+
+    public LockFile(
+            GroupId groupId,
+            ArtifactId name,
+            VersionNumber versionNumber,
+            Pom pom,
+            Set<DependencyNode> dependencies,
+            Set<MavenPlugin> mavenPlugins,
+            MetaData metaData) {
+        this.groupId = groupId;
         this.name = name;
         this.version = versionNumber;
-        this.groupId = groupId;
+        this.pom = pom;
+        this.dependencies = dependencies == null ? Collections.emptySet() : dependencies;
+        this.mavenPlugins = mavenPlugins == null ? Collections.emptySet() : mavenPlugins;
+        this.metaData = metaData;
     }
     /**
      * Create a lock file object from a serialized JSON string.
@@ -51,56 +71,62 @@ public class LockFile {
     }
 
     /**
-     * Returns true if the lock file contains the same dependencies as the given set of dependencies,
-     * and all the checksums match.
-     * @param other the lockfile to compare with
-     * @return true if the lock file is equivalent
-     */
-    public boolean isEquivalentTo(LockFile other) {
-        return differenceTo(other).isEmpty() && other.differenceTo(this).isEmpty();
-    }
-
-    /**
-     * Returns a set of dependencies that are in this lock file but not in the other lock file.
-     * These could be either completely new dependencies, or dependencies that have different checksums.
-     * @param other the lock file to compare with
-     * @return a set of dependencies that are in this lock file but not in the other lock file
-     */
-    public Set<DependencyNode> differenceTo(LockFile other) {
-        Set<DependencyNode> thisSet = new HashSet<>(dependencies);
-        Set<DependencyNode> otherSet = Set.copyOf(other.getDependencies());
-        thisSet.removeAll(otherSet);
-        return thisSet;
-    }
-    /**
-     * @param packagedDependencies the packagedDependencies to set
-     */
-    public void setPackagedDependencies(List<PackagedDependency> packagedDependencies) {
-        this.packagedDependencies = packagedDependencies;
-    }
-
-    /**
-     * @return the packagedDependencies
-     */
-    public List<PackagedDependency> getPackagedDependencies() {
-        return packagedDependencies;
-    }
-    /**
      * @return the dependencies
      */
-    public List<DependencyNode> getDependencies() {
-        return dependencies;
+    public Set<DependencyNode> getDependencies() {
+        return nullToEmpty(dependencies);
     }
-    /** (non-Javadoc)
-     * @see Object#hashCode()
+    /**
+     * @return the groupId
      */
+    public GroupId getGroupId() {
+        return groupId;
+    }
+    /**
+     * @return the name
+     */
+    public ArtifactId getName() {
+        return name;
+    }
+    /**
+     * @return the version
+     */
+    public VersionNumber getVersion() {
+        return version;
+    }
+
+    /**
+     * @return the link to pom file and checksum
+     */
+    public Pom getPom() {
+        return pom;
+    }
+
+    /**
+     * @return the mavenPlugins
+     */
+    public Set<MavenPlugin> getMavenPlugins() {
+        return nullToEmpty(mavenPlugins);
+    }
+    /**
+     * @return the metadata about the environment in which the lock file was generated
+     */
+    public Environment getEnvironment() {
+        return metaData.getEnvironment();
+    }
+
+    /**
+     * @return the config
+     */
+    public Config getConfig() {
+        return metaData.getConfig();
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hash(name, version, lockfileVersion, dependencies);
+        return Objects.hash(name, groupId, version, lockfileVersion, pom, dependencies, nullToEmpty(mavenPlugins));
     }
-    /** (non-Javadoc)
-     * @see Object#equals(Object)
-     */
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
@@ -111,8 +137,14 @@ public class LockFile {
         }
         LockFile other = (LockFile) obj;
         return Objects.equals(name, other.name)
+                && Objects.equals(groupId, other.groupId)
                 && Objects.equals(version, other.version)
                 && lockfileVersion == other.lockfileVersion
-                && Objects.equals(dependencies, other.dependencies);
+                && Objects.equals(nullToEmpty(dependencies), nullToEmpty(other.dependencies))
+                && Objects.equals(nullToEmpty(mavenPlugins), nullToEmpty(other.mavenPlugins));
+    }
+
+    private static <T> Set<T> nullToEmpty(Set<T> set) {
+        return set == null ? Collections.emptySet() : set;
     }
 }

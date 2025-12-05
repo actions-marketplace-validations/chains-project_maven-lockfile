@@ -1,25 +1,55 @@
-name: Generate Doc
-
+name: Doc Generation
 on:
   pull_request:
 
-
+permissions:
+  contents: read
 jobs:
-  readme:
+  build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-        - name: checkout repository
-          uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # v3
-          with:
-            fetch-depth: 0
-            ref: ${{ github.event.pull_request.head.ref }}
-        - name: Set up Maven
-          uses: stCarolas/setup-maven@07fbbe97d97ef44336b7382563d66743297e442f # v4.5
-          with:
-            maven-version: 3.9.0
-        - name: Generate Readme+action.yml
-          run: mvn resources:copy-resources -q
-        - name: commit doc changes
-          uses: EndBug/add-and-commit@61a88be553afe4206585b31aa72387c64295d08b # v9
-          with:
-              message: "📝Update Documentation with current version"
+      - name: Harden Runner
+        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+        with:
+          disable-sudo: true
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            github.com:443
+            objects.githubusercontent.com:443
+            release-assets.githubusercontent.com:443
+            repo.maven.apache.org:443
+
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify action checksums
+        uses: chains-project/maven-lockfile/.github/actions/ghasum@219e4f3829570e41a62b17a1410ec615ca585af1 # 5.10.0
+
+      - name: Generate action.yml
+        run: mvn generate-resources resources:copy-resources -q
+
+      - name: Run Maven Spotless
+        run: mvn spotless:apply
+
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git fetch
+          if git diff --quiet; then
+            echo "::set-output name=changes::false"
+          else
+            echo "::set-output name=changes::true"
+          fi
+
+      - name: Commit changes
+        if: steps.check_changes.outputs.changes == 'true'
+        uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # v7.0.0
+        with:
+          commit_message: "📝 Update Documentation with current version"

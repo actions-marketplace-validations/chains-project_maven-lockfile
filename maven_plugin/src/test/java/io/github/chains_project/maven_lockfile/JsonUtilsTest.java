@@ -1,27 +1,27 @@
 package io.github.chains_project.maven_lockfile;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-import io.github.chains_project.maven_lockfile.data.LockFile;
-import io.github.chains_project.maven_lockfile.data.LockFileDependency;
+import com.google.common.collect.Sets;
+import io.github.chains_project.maven_lockfile.graph.DependencyNode;
+import java.util.HashSet;
+import java.util.Set;
 import org.instancio.Instancio;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class JsonUtilsTest {
 
     @Test
-    void toJsonAndBack() {
-        var dep = Instancio.create(LockFileDependency.class);
-        var cloned = JsonUtils.fromJson(JsonUtils.toJson(dep), LockFileDependency.class);
-        assertThat(cloned).isEqualTo(dep);
-    }
+    void set_view_to_json_does_not_return_null() {
 
-    @Test
-    @Disabled
-    void toJsonAndBack2() {
-        var dep = Instancio.create(LockFile.class);
-        var cloned = JsonUtils.fromJson(JsonUtils.toJson(dep), LockFile.class);
-        assertThat(cloned).isEqualTo(dep);
+        Instancio.create(DependencyNode.class);
+        Set<DependencyNode> set = new HashSet<>();
+        set.add(Instancio.create(DependencyNode.class));
+        Set<DependencyNode> set2 = new HashSet<>();
+        set2.add(Instancio.create(DependencyNode.class));
+        var result = new HashSet<>(Sets.difference(set, set2));
+        assertEquals(result.size(), 1);
+        assertNotEquals(JsonUtils.toJson(result), "null");
     }
 }

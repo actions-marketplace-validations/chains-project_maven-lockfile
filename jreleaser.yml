@@ -10,14 +10,18 @@ project:
   license: MIT
   links:
     homepage: https://github.com/chains-project/maven-lockfile
-  java:
-    groupId: io.github.chains-project
-    version: 11
-  inceptionYear: 2023
+  languages:
+    java:
+      groupId: io.github.chains-project
+      version: "11"
+  inceptionYear: "2023"
 
 release:
   github:
     owner: chains-project
+    immutableRelease: true
+    prerelease:
+      pattern: .*beta.*
     changelog:
       formatted: ALWAYS
       preset: 'gitmoji'
@@ -28,16 +32,19 @@ release:
         contributors:
           - '[bot]'
           - 'GitHub'
+files:
+  active: ALWAYS
+  globs:
+    - pattern: target/*.buildinfo
+    - pattern: target/staging-deploy/**/*cyclonedx.json
 signing:
   active: ALWAYS
   armored: true
 deploy:
   maven:
-    nexus2:
+    mavenCentral:
       maven-central:
         active: ALWAYS
-        url: https://s01.oss.sonatype.org/service/local
-        closeRepository: true
-        releaseRepository: true
+        url: https://central.sonatype.com/api/v1/publisher
         stagingRepositories:
           - target/staging-deploy

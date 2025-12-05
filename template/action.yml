@@ -8,51 +8,158 @@ inputs:
     description: 'GitHub token'
     required: true
   commit-lockfile: 
-    description: 'Commit the lockfile to the repository'
+    description: 'Commit the lockfile to the repository in case the pom.xml or workflow file has updated. If this is false or the pom.xml and workflow.yml files are unchanged the action will verify the current lockfile.json.'
     required: false
     default: 'true'
+  commit-message:
+    description: 'Commit message for the lockfile'
+    required: false
+    default: 'chore: update lockfile'
+  include-maven-plugins:
+    description: 'Include Maven plugins in the lockfile'
+    required: false
+    default: 'false'
+  lockfile-name:
+    description: 'Name of the lockfile (default="lockfile.json")'
+    required: false
+    default: 'lockfile.json'
+  workflow-filename:
+    description: 'Name of the workflow file'
+    required: false
+    default: 'Lockfile.yml'
 runs:
   using: "composite"
   steps:
     - name: checkout repository
-      uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # v3
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       with:
         fetch-depth: 0
         ref: ${{ github.event.pull_request.head.ref }}
-        repository: ${{github.event.pull_request.head.repo.full_name}}
-    - name: Set up Maven
-      uses: stCarolas/setup-maven@07fbbe97d97ef44336b7382563d66743297e442f # v4.5
+        repository: ${{ github.event.pull_request.head.repo.full_name }}
+        token: ${{ inputs.github-token }}
+    - name: Setup Java
+      uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
       with:
-        maven-version: 3.8.2
-    - id: install-jbang
-      run: curl -Ls https://sh.jbang.dev | bash -s - app setup
-      shell: bash
-
-
-    - name: Get all changed pom.xml file(s)
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven
+    - name: Get all changed pom.xml and workflow file(s) and set into POM_CHANGED env variable
       id: changed-files
-      uses: tj-actions/changed-files@b109d83a62e94cf7c522bf6c15cb25c175850b16 # v35
-      with:
-        files: |
-              **/pom.xml
-    - name: print all changed files
-      run: echo all changed files are ${{ steps.changed-files.outputs.all_changed_files }}
-      shell: bash
-    - name: Set POM_CHANGED environment variable
-      run: echo "POM_CHANGED=${{ steps.changed-files.outputs.any_changed}}" >> $GITHUB_ENV
+      run: |
+          # Default to no change
+          echo "POM_CHANGED=false" >> $GITHUB_ENV
+
+          if [ -n "$GITHUB_BASE_REF" ]; then # Comparing against base branch (pull request)
+            BASE_REF="origin/$GITHUB_BASE_REF"
+          else # No base branch, comparing against previous commit
+            BASE_REF="HEAD^"
+          fi
+
+          # Safely attempt diff
+          if CHANGED_FILES=$(git diff --name-only "$BASE_REF"...HEAD 2>/dev/null); then
+            echo "Changed files: $CHANGED_FILES"
+
+            # Check if relevant files changed
+            if echo "$CHANGED_FILES" | grep -Eq "(pom.xml|${{ inputs.workflow-filename }})"; then
+              echo "Relevant files changed."
+              echo "POM_CHANGED=true" >> $GITHUB_ENV
+            else
+              echo "No relevant files changed."
+            fi
+          else
+            echo "Git diff failed, setting POM_CHANGED to false."
+          fi
       shell: bash
     - name: print POM-CHANGED
       run: echo "pom changed ${{ env.POM_CHANGED }}"
       shell: bash
-
-    - id: action
-      run: ~/.jbang/bin/jbang --repos 'github=https://maven.pkg.github.com/chains-project/maven-lockfile/' --repos 'mavencentral' io.github.chains-project:maven-lockfile-github-action:${project.version}
+    - name: Set COMMIT_UPDATED_LOCKFILE environment variable
+      run: echo "COMMIT_UPDATED_LOCKFILE=${{ inputs.commit-lockfile }}" >> $GITHUB_ENV
       shell: bash
-      env:
-        JSON_INPUTS: ${{ toJSON(inputs) }}
-        GITHUB_TOKEN: ${{ inputs.github-token }}
+    - name: Maven Lockfile Action
+      id: maven-lockfile
+      run: |
+        #!/bin/bash
+        set -e
+        
+        # -------- Begin Maven Lockfile Action --------
+        echo "::group::maven-lockfile"
+        
+        # Configuration from inputs
+        INCLUDE_MAVEN_PLUGINS="${{ inputs.include-maven-plugins }}"
+        LOCKFILE_NAME="${{ inputs.lockfile-name }}"
+        POM_CHANGED="${POM_CHANGED}"
+        COMMIT_UPDATED_LOCKFILE="${COMMIT_UPDATED_LOCKFILE}"
+        
+        # Convert to Maven plugin args
+        PLUGIN_VERSION="${released.version}"
+        MAVEN_ARGS=""
+        
+        if [ "$INCLUDE_MAVEN_PLUGINS" == "true" ]; then
+          MAVEN_ARGS="$MAVEN_ARGS -DincludeMavenPlugins=true"
+        fi
+        
+        if [ "$LOCKFILE_NAME" != "lockfile.json" ]; then
+          MAVEN_ARGS="$MAVEN_ARGS -DlockfileName=$LOCKFILE_NAME"
+        fi
+        
+        # Function to execute Maven plugin and handle errors
+        function execute_maven_command() {
+          local COMMAND=$1
+          local SUMMARY_TITLE=$2
+          local SUCCESS_MESSAGE=$3
+          local FAILURE_MESSAGE=$4
+        
+          echo "Executing: mvn $COMMAND $MAVEN_ARGS -q"
+        
+          if mvn $COMMAND $MAVEN_ARGS -q; then
+            # Success
+            echo "::notice::$SUCCESS_MESSAGE"
+            echo "# Maven Lockfile" >> $GITHUB_STEP_SUMMARY
+            echo "✅**Success** $SUCCESS_MESSAGE" >> $GITHUB_STEP_SUMMARY
+            if [ -n "$5" ]; then
+              echo "$5" >> $GITHUB_STEP_SUMMARY
+            fi
+            return 0
+          else
+            # Failure
+            echo "::error::$FAILURE_MESSAGE"
+            echo "# Maven Lockfile" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️**Warning** $FAILURE_MESSAGE" >> $GITHUB_STEP_SUMMARY
+            if [ -n "$6" ]; then
+              echo "$6" >> $GITHUB_STEP_SUMMARY
+            fi
+            return 1
+          fi
+        }
+        
+        # Determine whether to generate or validate
+        if [ "$POM_CHANGED" == "true" ] && [ "$COMMIT_UPDATED_LOCKFILE" == "true" ]; then
+          echo "::notice::Pom file changed, running lockfile generation"
+        
+          GENERATE_COMMAND="io.github.chains-project:maven-lockfile:$PLUGIN_VERSION:generate"
+        
+          if ! execute_maven_command "$GENERATE_COMMAND" "Lockfile Generation" "Lockfile generation succeeded" "Lockfile generation failed"; then
+            echo "::endgroup::"
+            exit 1
+          fi
+        else
+          echo "::notice::Pom file not changed, running lockfile validation"
+        
+          VALIDATE_COMMAND="io.github.chains-project:maven-lockfile:$PLUGIN_VERSION:validate"
+          ADDITIONAL_FAILURE_MESSAGE="The lockfile is not up to date with the pom file. Please run io.github.chains-project:maven-lockfile:$PLUGIN_VERSION:generate to update the lockfile. For your convenience, you can also download the generated lockfile from the artifacts of this check run."
+          ADDITIONAL_SUCCESS_MESSAGE="The lockfile is up to date with the pom files."
+        
+          if ! execute_maven_command "$VALIDATE_COMMAND" "Integrity Check" "Integrity check passed" "Integrity check failed" "$ADDITIONAL_SUCCESS_MESSAGE" "$ADDITIONAL_FAILURE_MESSAGE"; then
+            echo "::endgroup::"
+            exit 1
+          fi
+        fi
+        
+        echo "::endgroup::"
+      shell: bash
     - id: commit-lockfile
       if: inputs.commit-lockfile == 'true'
-      uses: EndBug/add-and-commit@61a88be553afe4206585b31aa72387c64295d08b # v9
+      uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3 # 7.0.0
       with:
-          default_author: github_actions
+          commit_message: ${{ inputs.commit-message }}

@@ -13,67 +13,119 @@ on:
           - minor
           - patch
 
-jobs:
+permissions:
+  contents: read
 
+jobs:
   build:
+    name: Build and release
+
+    permissions:
+      id-token: write # For Sigstore signing (https://github.com/sigstore/sigstore-java/tree/main/sigstore-maven-plugin)
+      contents: write
+
     runs-on: ubuntu-latest
+
+    environment: release
+
     steps:
-# Setups the environment
-      - name: Checkout
-        uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3 # v3
+      - name: Harden Runner
+        uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+        with:
+          egress-policy: audit
+
+      # Setups the environment
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
         with:
           fetch-depth: 0
-      - name: Set up JDK 11
-        uses: actions/setup-java@5ffc13f4174014e2d4d4572b3d74c3fa61aeb2c2 # v3
+          token: ${{ secrets.JRELEASER_GITHUB_TOKEN }}
+
+      - name: Verify action checksums
+        uses: chains-project/maven-lockfile/.github/actions/ghasum@219e4f3829570e41a62b17a1410ec615ca585af1 # 5.10.0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
         with:
-          java-version: '11'
+          java-version: '17'
           distribution: 'temurin'
           cache: maven
-          
+
+      - name: Set git user
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "<>"
+
       - name: install go
-        uses: actions/setup-go@4d34df0c2316fe8122ab82dc22947d607c0c91f9 # v4
+        uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+
       - name: install semversion
         run: go install github.com/ffurrer2/semver/cmd/semver@latest
-# Get current version from pom and remove snapshot if present.
+
       - name: Get current version from pom and remove snapshot if present.
         run: echo "CURRENT_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//')" >> $GITHUB_ENV
+
       - name: Get version with snapshot
         run: echo "CURRENT_VERSION_WITH_SNAPSHOT=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-# Calculate next version: 
-# - if version is patch, we just increment the patch version
-# - if version is minor or major, we increment the minor or major version and set the patch version to 0
-# As we are using a snapshot version, we need to run semver next twice to get the next version for mahor and minor releases. Reason: Any X.Y.Z-SNAPSHOT version will be released as X.Y.Z if we run semver next major X.Y.Z-SNAPSHOT
+
+      # Calculate next version: 
+      # - if version is patch, we just increment the patch version
+      # - if version is minor or major, we increment the minor or major version and set the patch version to 0
+      # As we are using a snapshot version, we need to run semver next twice to get the next version for mahor and minor releases. Reason: Any X.Y.Z-SNAPSHOT version will be released as X.Y.Z if we run semver next major X.Y.Z-SNAPSHOT
       - name: Set next version
         if: ${{ github.event.inputs.version == 'patch' }}
         run: echo "NEXT_VERSION=$(semver next ${{ github.event.inputs.version }} $CURRENT_VERSION_WITH_SNAPSHOT)" >> $GITHUB_ENV
+
       - name: Set next version
         # semver next for a snapshot only releases the snapshot version, so we need to run it 2 times
         if: ${{ github.event.inputs.version == 'major'  || github.event.inputs.version == 'minor' }}
         run: echo "NEXT_VERSION=$(semver next ${{ github.event.inputs.version }} $CURRENT_VERSION)" >> $GITHUB_ENV
-      - name: run maven-lockfile
-        uses: chains-project/maven-lockfile@20c49498ce30d0d6505ef97e8055c7cba90caa9f # v1.1.7
+
+      - name: run maven-lockfile (validate lockfile)
+        uses: chains-project/maven-lockfile@219e4f3829570e41a62b17a1410ec615ca585af1 # 5.10.0
         with:
             github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set release version
-        run: mvn --no-transfer-progress --batch-mode versions:set -DnewVersion=$NEXT_VERSION -DprocessAllModules
-      - name: Generate Readme
-        run : mvn resources:copy-resources
-      - name: Commit & Push changes
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.JRELEASER_GITHUB_TOKEN }}
-          message: 🔖 Releasing version ${{ env.NEXT_VERSION }}
+            include-maven-plugins: true
+            commit-lockfile: false
 
-# Now we can run the release
+      - name: set branchname to next version
+        run: echo "BRANCH_NAME=release/$NEXT_VERSION" >> $GITHUB_ENV
+
+      - name: Set release version
+        run: |
+          mvn --no-transfer-progress --batch-mode versions:set -DnewVersion=$NEXT_VERSION -DprocessAllModules
+          mvn --no-transfer-progress --batch-mode versions:set-property -Dproperty=released.version -DnewVersion=$NEXT_VERSION
+
+      - name: Generate Readme
+        run : mvn generate-resources resources:copy-resources
+
+      - name: run maven-lockfile (generate new lockfile for release version)
+        run: mvn io.github.chains-project:maven-lockfile:5.9.0:generate
+        shell: bash
+
+      - name: commit changes
+        run: |
+          git checkout -b ${{ env.BRANCH_NAME }}
+          git commit -am "🔖 Releasing version ${{ env.NEXT_VERSION }}"
+          git push --set-upstream origin ${{ env.BRANCH_NAME }}
+
       - name: Stage release
-        run: mvn --no-transfer-progress --batch-mode -Ppublication clean deploy -DaltDeploymentRepository=local::default::file://`pwd`/target/staging-deploy
+        run:  mvn --no-transfer-progress --batch-mode -Ppublication clean deploy -DaltDeploymentRepository=local::file:./target/staging-deploy -Dsigstore.skip=false
+
+      - name: generate buildinfo file
+        run: mvn org.apache.maven.plugins:maven-artifact-plugin:3.4.1:buildinfo
+
       - name: Print next version
         run: mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed 's/-SNAPSHOT//'
+
+      - name: Remove beta tags for changelog to be from previous non-beta release
+        run: git tag | grep beta | xargs -n 1 git tag -d
+
       - name: Run JReleaser
-        uses: jreleaser/release-action@v2
+        uses: jreleaser/release-action@90ac653bb9c79d11179e65d81499f3f34527dcd5 # 2.5.0
         with:
           setup-java: false
-          version: 1.4.0
+          version: 1.21.0
           arguments: full-release 
         env:
           JRELEASER_PROJECT_VERSION: ${{ env.NEXT_VERSION }}
@@ -81,10 +133,9 @@ jobs:
           JRELEASER_GPG_PASSPHRASE: ${{ secrets.JRELEASER_GPG_PASSPHRASE }}
           JRELEASER_GPG_PUBLIC_KEY: ${{ secrets.JRELEASER_GPG_PUBLIC_KEY }}
           JRELEASER_GPG_SECRET_KEY: ${{ secrets.JRELEASER_GPG_SECRET_KEY }}
-          JRELEASER_NEXUS2_MAVEN_CENTRAL_USERNAME: ${{ secrets.JRELEASER_NEXUS2_MAVEN_CENTRAL_USERNAME }}
-          JRELEASER_NEXUS2_MAVEN_CENTRAL_PASSWORD: ${{ secrets.JRELEASER_NEXUS2_MAVEN_CENTRAL_PASSWORD }}
+          JRELEASER_MAVENCENTRAL_MAVEN_CENTRAL_USERNAME: ${{ secrets.JRELEASER_MAVENCENTRAL_MAVEN_CENTRAL_USERNAME }}
+          JRELEASER_MAVENCENTRAL_MAVEN_CENTRAL_TOKEN: ${{ secrets.JRELEASER_MAVENCENTRAL_MAVEN_CENTRAL_TOKEN }}
 
-# Now we can update the changelog
       - name: Append changelog from out/jreleaser/CHANGELOG.md to CHANGELOG.md with version as header
         run: |
           echo "" >> CHANGELOG.md
@@ -92,29 +143,63 @@ jobs:
           echo "" >> CHANGELOG.md
           cat out/jreleaser/release/CHANGELOG.md >> CHANGELOG.md
           echo "" >> CHANGELOG.md
-# Time to set the next version: The next version of any Release is a snapshot version of the next patch version
+
+      # Time to set the next version: The next version of any Release is a snapshot version of the next patch version
       - name : Set next version (patch of release version) with -SNAPSHOT suffix
         run: |
          echo "NEXT_RELEASE_VERSION=$(semver next patch $NEXT_VERSION)-SNAPSHOT" >> $GITHUB_ENV
          echo "NEXT_RELEASE_VERSION_WITHOUT_SNAPSHOT=$(semver next patch $NEXT_VERSION)" >> $GITHUB_ENV
+
       - name: Set release version
         run: mvn --no-transfer-progress --batch-mode versions:set -DnewVersion=$NEXT_RELEASE_VERSION -DprocessAllModules
 
-# Time to update some files with the new version
-#1 Readme and action.yml
+      # Update action.yml with current version
       - name: Generate Readme
-        run : mvn resources:copy-resources -q
-# Commit and push changes
-      - name: Commit & Push changes
-        uses: actions-js/push@master
-        with:
-          github_token: ${{ secrets.JRELEASER_GITHUB_TOKEN }}
-          message: 🔖 Setting SNAPSHOT version ${{ env.NEXT_VERSION }}
+        run : mvn generate-resources resources:copy-resources -q
 
-# Log failure:
+      - name: run maven-lockfile (generate new lockfile for -SNAPSHOT version)
+        run: mvn io.github.chains-project:maven-lockfile:5.9.0:generate
+        shell: bash
+
+      - name: Commit & Push changes
+        run: |
+          git commit -am "🔖 Setting SNAPSHOT version ${{ env.NEXT_RELEASE_VERSION }}"
+          git push --set-upstream origin ${{ env.BRANCH_NAME }}
+
+      - name: Merge Fast Forward
+        run: |
+          git checkout main
+          git merge --ff-only ${{ env.BRANCH_NAME }}
+
+      - name: Attempt Push with Retry
+        env:
+          RETRY_MAX_TIME: 1200
+          RETRY_INTERVAL: 10
+        run: |
+          curl -L \
+            -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.JRELEASER_GITHUB_TOKEN }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            https://api.github.com/repos/${{ github.repository }}/pulls \
+            -d '{"title":"Release ${{ env.BRANCH_NAME }} ff-merge","body":"PR to trigger tests required for branch protection rules","head":"${{ env.BRANCH_NAME }}","base":"main"}'
+
+          START_TIME=$(date +%s)
+          while true; do
+            git push origin main && break
+            ELAPSED_TIME=$(( $(date +%s) - START_TIME ))
+            if [ "$ELAPSED_TIME" -ge $RETRY_MAX_TIME ]; then
+              echo "Push failed after $RETRY_MAX_TIME seconds. Exiting..."
+              exit 1
+            fi
+            echo "Push failed. Retrying in $RETRY_INTERVAL seconds..."
+            sleep $RETRY_INTERVAL
+          done
+
+      # Log failure:
       - name: JReleaser release output
         if: always()
-        uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce # v3
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: jreleaser-release
           path: |

@@ -1,0 +1,31 @@
+{
+  "artifactId": "different-lockfile-name-validate-should-fail",
+  "groupId": "com.mycompany.app",
+  "version": "1",
+  "pom": {
+    "path": "pom.xml",
+    "checksumAlgorithm": "SHA-256",
+    "checksum": "0fe00dbb569e02deb3e4e4dde9e788fe37fee787b2339aae435e75eae53e5378"
+  },
+  "lockFileVersion": 1,
+  "dependencies": [],
+  "mavenPlugins": [],
+  "metaData": {
+    "environment": {
+      "osName": "Linux",
+      "mavenVersion": "3.9.9",
+      "javaVersion": "21.0.5"
+    },
+    "config": {
+      "includeMavenPlugins": false,
+      "allowValidationFailure": false,
+      "allowPomValidationFailure": true,
+      "allowEnvironmentalValidationFailure": true,
+      "includeEnvironment": true,
+      "reduced": false,
+      "mavenLockfileVersion": "5.4.3-SNAPSHOT",
+      "checksumMode": "local",
+      "checksumAlgorithm": "SHA-256"
+    }
+  }
+}

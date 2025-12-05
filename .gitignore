@@ -19,6 +19,7 @@ buildNumber.properties
 .idea
 .DS_Store
 .vscode/settings.json
+.vim/
 .idea/
 target/
 out/
@@ -27,3 +28,5 @@ out/
 *.jar
 *.versionsBackup
 *.log
+.mvn/.gradle-enterprise/gradle-enterprise-workspace-id
+JRELEASER_VERSION
