@@ -2310,3 +2310,75 @@ We'd like to thank the following people for their contributions:
 We'd like to thank the following people for their contributions:
 - Elias Lundell ([@LogFlames](https://github.com/LogFlames))
 - LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.12.0
+## Changelog
+
+## 🚀 Added
+- 9511597 ✨ feat: Include parent poms (recursively) in lockfile (#1444)
+
+## 📦 Dependencies
+- 6f63b9b ⬆️ (deps): Update chains-project/maven-lockfile action to v5.11.1 (#1469)
+
+## 🏁 Release
+- 71aeb70 🔖 Releasing version 5.12.0
+- c8fa853 🔖 Setting SNAPSHOT version 5.11.2-SNAPSHOT
+
+---
+- 43f5828 refactor: Use temp variable to store lastest pom (#1470)
+- 7618508 ci: bump `ghasum` from v0.6.1 to v0.6.3 (#1468)
+- 46ed487 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Adam Kaplan ([@adambkaplan](https://github.com/adambkaplan))
+- Aman Sharma ()
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- Eric Cornelissen ([@ericcornelissen](https://github.com/ericcornelissen))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.12.1
+## Changelog
+
+## 🏁 Release
+- 0e86b9d 🔖 Releasing version 5.12.1
+- 3350be2 🔖 Setting SNAPSHOT version 5.12.1-SNAPSHOT
+
+---
+- 2c820bf chore(cd): Use newest version of maven lockfile in release script (#1472)
+- ab92ea4 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.13.0
+## Changelog
+
+## 🚀 Added
+- 30304ce ✨ feat(checksum calculator): Add cache to remote checksum calculator (#1481)
+- bd08070 ✨ feat(lockfile): Add resolve and repo id field to external poms (#1478)
+- 256923f ✨ feat: More stable MavenPlugin ordering in lockfile (#1466)
+
+## 🔄️ Changed
+- bb881fe 📌 deps: Add assertj-core 3.27.7 as direct dependency (#1479)
+
+## 📦 Dependencies
+- a62cb91 ⬆️ (deps): Update chains-project/maven-lockfile action to v5.12.1 (#1475)
+
+## 🏁 Release
+- 20d836d 🔖 Releasing version 5.13.0
+- aea25de 🔖 Setting SNAPSHOT version 5.12.2-SNAPSHOT
+
+---
+- a4b8d83 chore(cd): Use latest version of maven lockfile in release script (#1474)
+- f318129 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))

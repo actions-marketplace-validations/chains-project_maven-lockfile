@@ -1,11 +1,22 @@
 {
   "artifactId": "maven-lockfile",
   "groupId": "io.github.chains-project",
-  "version": "5.11.2-SNAPSHOT",
+  "version": "5.13.1-SNAPSHOT",
   "pom": {
-    "path": "pom.xml",
+    "groupId": "io.github.chains-project",
+    "artifactId": "maven-lockfile",
+    "version": "5.13.1-SNAPSHOT",
+    "relativePath": "pom.xml",
     "checksumAlgorithm": "SHA-256",
-    "checksum": "bb6ed7463352c504554dc2e5b7bfa3b8c4197822ba837891e705b1e6cdbe7f4f"
+    "checksum": "d2f98b5f8c421da60735d7efe905c314704e4775e4d1884ed76703704510d6e3",
+    "parent": {
+      "groupId": "io.github.chains-project",
+      "artifactId": "maven-lockfile-parent",
+      "version": "5.13.1-SNAPSHOT",
+      "relativePath": "../pom.xml",
+      "checksumAlgorithm": "SHA-256",
+      "checksum": "2c7f3c897f2a3d36f75b949d1a8466c1aaeae1aa18b10b5d4d52df1d0385433c"
+    }
   },
   "lockFileVersion": 1,
   "dependencies": [
@@ -166,27 +177,11 @@
           "scope": "test",
           "resolved": "https://repo.maven.apache.org/maven2/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar",
           "repositoryId": "central",
-          "selectedVersion": "3.24.2",
-          "included": true,
+          "selectedVersion": "3.27.7",
+          "included": false,
           "id": "org.assertj:assertj-core:3.24.2",
           "parent": "com.soebes.itf.jupiter.extension:itf-assertj:0.13.1",
-          "children": [
-            {
-              "groupId": "net.bytebuddy",
-              "artifactId": "byte-buddy",
-              "version": "1.12.21",
-              "checksumAlgorithm": "SHA-256",
-              "checksum": "f6f45c2237a7f132c16745ad2a52c4cdde58028b11ee80b09f0d422f4930d685",
-              "scope": "test",
-              "resolved": "https://repo.maven.apache.org/maven2/net/bytebuddy/byte-buddy/1.12.21/byte-buddy-1.12.21.jar",
-              "repositoryId": "central",
-              "selectedVersion": "1.15.11",
-              "included": false,
-              "id": "net.bytebuddy:byte-buddy:1.12.21",
-              "parent": "org.assertj:assertj-core:3.24.2",
-              "children": []
-            }
-          ]
+          "children": []
         }
       ]
     },
@@ -1971,8 +1966,8 @@
               "scope": "test",
               "resolved": "https://repo.maven.apache.org/maven2/net/bytebuddy/byte-buddy/1.15.11/byte-buddy-1.15.11.jar",
               "repositoryId": "central",
-              "selectedVersion": "1.15.11",
-              "included": true,
+              "selectedVersion": "1.18.3",
+              "included": false,
               "id": "net.bytebuddy:byte-buddy:1.15.11",
               "parent": "org.mockito:mockito-core:5.16.1",
               "children": []
@@ -2369,6 +2364,36 @@
           "included": false,
           "id": "org.slf4j:slf4j-api:1.7.36",
           "parent": "org.apache.maven.shared:maven-dependency-tree:3.3.0",
+          "children": []
+        }
+      ]
+    },
+    {
+      "groupId": "org.assertj",
+      "artifactId": "assertj-core",
+      "version": "3.27.7",
+      "checksumAlgorithm": "SHA-256",
+      "checksum": "c4a445426c3c2861666863b842cc4ec7bbb1c4226fefd370b6d2fe83d6c4ff0f",
+      "scope": "test",
+      "resolved": "https://repo.maven.apache.org/maven2/org/assertj/assertj-core/3.27.7/assertj-core-3.27.7.jar",
+      "repositoryId": "central",
+      "selectedVersion": "3.27.7",
+      "included": true,
+      "id": "org.assertj:assertj-core:3.27.7",
+      "children": [
+        {
+          "groupId": "net.bytebuddy",
+          "artifactId": "byte-buddy",
+          "version": "1.18.3",
+          "checksumAlgorithm": "SHA-256",
+          "checksum": "d78396e3c5bce3f2865c9186647481e5589d34cacc632484715b686108d17c66",
+          "scope": "test",
+          "resolved": "https://repo.maven.apache.org/maven2/net/bytebuddy/byte-buddy/1.18.3/byte-buddy-1.18.3.jar",
+          "repositoryId": "central",
+          "selectedVersion": "1.18.3",
+          "included": true,
+          "id": "net.bytebuddy:byte-buddy:1.18.3",
+          "parent": "org.assertj:assertj-core:3.27.7",
           "children": []
         }
       ]
@@ -38647,7 +38672,7 @@
       "allowEnvironmentalValidationFailure": false,
       "includeEnvironment": true,
       "reduced": false,
-      "mavenLockfileVersion": "5.11.1",
+      "mavenLockfileVersion": "5.12.1",
       "checksumMode": "local",
       "checksumAlgorithm": "SHA-256"
     }

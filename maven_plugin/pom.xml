@@ -4,12 +4,12 @@
   <parent>
     <groupId>io.github.chains-project</groupId>
     <artifactId>maven-lockfile-parent</artifactId>
-    <version>5.11.2-SNAPSHOT</version>
+    <version>5.13.1-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
   <groupId>io.github.chains-project</groupId>
   <artifactId>maven-lockfile</artifactId>
-  <version>5.11.2-SNAPSHOT</version>
+  <version>5.13.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
   <name>maven-lockfile-plugin</name>
   <description>This plugin is a state-of-the-art solution that can be used to validate the integrity
@@ -86,6 +86,13 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <version>6.0.2</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- Explicit dependency to fix GHSA-rqfh-9r24-8c9r (XXE vulnerability in versions < 3.27.7) -->
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <version>3.27.7</version>
       <scope>test</scope>
     </dependency>
     <dependency>
