@@ -4,12 +4,12 @@
   <parent>
     <groupId>io.github.chains-project</groupId>
     <artifactId>maven-lockfile-parent</artifactId>
-    <version>5.13.1-SNAPSHOT</version>
+    <version>5.16.1-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
   <groupId>io.github.chains-project</groupId>
   <artifactId>maven-lockfile</artifactId>
-  <version>5.13.1-SNAPSHOT</version>
+  <version>5.16.1-SNAPSHOT</version>
   <packaging>maven-plugin</packaging>
   <name>maven-lockfile-plugin</name>
   <description>This plugin is a state-of-the-art solution that can be used to validate the integrity
@@ -31,15 +31,32 @@
   </scm>
   <properties>
     <mavenVersion>3.9.11</mavenVersion>
-    <maven.compiler.target>11</maven.compiler.target>
-    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.release>11</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <!-- Force upgrade of vulnerable transitive plexus-utils (GHSA-6fmv-xxpf-w3cw / CVE-2025-67030).
+           maven-core pulls in 3.6.0 via maven-model; override to safe version 4.0.3. -->
+      <dependency>
+        <groupId>org.codehaus.plexus</groupId>
+        <artifactId>plexus-utils</artifactId>
+        <version>4.0.3</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>org.apache.maven</groupId>
       <artifactId>maven-plugin-api</artifactId>
       <version>${mavenVersion}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- plexus-utils 4.x extracted XML APIs into plexus-xml; needed for XmlPullParserException -->
+    <dependency>
+      <groupId>org.codehaus.plexus</groupId>
+      <artifactId>plexus-xml</artifactId>
+      <version>4.1.1</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -98,7 +115,7 @@
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core</artifactId>
-      <version>2.25.3</version>
+      <version>2.25.4</version>
     </dependency>
     <dependency>
       <groupId>com.soebes.itf.jupiter.extension</groupId>

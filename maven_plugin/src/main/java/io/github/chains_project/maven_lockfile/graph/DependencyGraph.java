@@ -5,6 +5,7 @@ import com.google.common.graph.MutableGraph;
 import io.github.chains_project.maven_lockfile.checksum.AbstractChecksumCalculator;
 import io.github.chains_project.maven_lockfile.checksum.RepositoryInformation;
 import io.github.chains_project.maven_lockfile.data.ArtifactId;
+import io.github.chains_project.maven_lockfile.data.ArtifactType;
 import io.github.chains_project.maven_lockfile.data.Classifier;
 import io.github.chains_project.maven_lockfile.data.GroupId;
 import io.github.chains_project.maven_lockfile.data.MavenScope;
@@ -12,6 +13,7 @@ import io.github.chains_project.maven_lockfile.data.VersionNumber;
 import io.github.chains_project.maven_lockfile.reporting.PluginLogManager;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.maven.artifact.Artifact;
 import org.apache.maven.shared.dependency.graph.internal.SpyingDependencyNodeUtils;
 
 public class DependencyGraph {
@@ -34,6 +36,26 @@ public class DependencyGraph {
      */
     public Set<DependencyNode> getGraph() {
         return graph;
+    }
+
+    /**
+     * Uses breadth-first search to traverse the dependency graph and generate a flat dependency set.
+     *
+     * @return a set of all the dependencies
+     */
+    public Set<DependencyNode> getDependencySet() {
+        var dependencySet = new TreeSet<DependencyNode>();
+        var queue = new LinkedList<>(getRoots());
+
+        while (!queue.isEmpty()) {
+            DependencyNode current = queue.poll();
+            if (dependencySet.add(current)) {
+                // Only add children if this node was newly added (avoids cycles)
+                queue.addAll(current.getChildren());
+            }
+        }
+
+        return dependencySet;
     }
 
     @Override
@@ -62,6 +84,22 @@ public class DependencyGraph {
         var roots = graph.nodes().stream()
                 .filter(it -> graph.predecessors(it).isEmpty())
                 .collect(Collectors.toList());
+
+        // Collect unique non-root artifacts and let the calculator pre-warm its cache
+        Set<String> seen = new HashSet<>();
+        List<Artifact> uniqueArtifacts = new ArrayList<>();
+        for (var node : graph.nodes()) {
+            if (!graph.predecessors(node).isEmpty()) {
+                var a = node.getArtifact();
+                String key = a.getGroupId() + ":" + a.getArtifactId() + ":" + a.getVersion() + ":"
+                        + (a.getClassifier() != null ? a.getClassifier() : "") + ":" + a.getType();
+                if (seen.add(key)) {
+                    uniqueArtifacts.add(a);
+                }
+            }
+        }
+        calc.prewarmArtifactCache(uniqueArtifacts);
+
         Set<DependencyNode> nodes = new TreeSet<>(Comparator.comparing(DependencyNode::getComparatorString));
         for (var artifact : roots) {
             createDependencyNode(artifact, graph, calc, true, reduced).ifPresent(nodes::add);
@@ -87,6 +125,7 @@ public class DependencyGraph {
         var artifactId = ArtifactId.of(node.getArtifact().getArtifactId());
         var version = VersionNumber.of(node.getArtifact().getVersion());
         var classifier = Classifier.of(node.getArtifact().getClassifier());
+        var type = ArtifactType.of(node.getArtifact().getType());
         PluginLogManager.getLog().debug(String.format("Calculating checksum for %s", node.toNodeString()));
         var checksum = isRoot ? "" : calc.calculateArtifactChecksum(node.getArtifact());
         var scope = MavenScope.fromString(node.getArtifact().getScope());
@@ -105,6 +144,7 @@ public class DependencyGraph {
                 groupId,
                 version,
                 classifier,
+                type,
                 scope,
                 repositoryInformation.getResolvedUrl(),
                 repositoryInformation.getRepositoryId(),

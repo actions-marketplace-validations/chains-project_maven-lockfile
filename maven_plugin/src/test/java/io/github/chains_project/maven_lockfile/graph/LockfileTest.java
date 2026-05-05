@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.github.chains_project.maven_lockfile.checksum.ChecksumModes;
 import io.github.chains_project.maven_lockfile.data.ArtifactId;
+import io.github.chains_project.maven_lockfile.data.ArtifactType;
 import io.github.chains_project.maven_lockfile.data.Config;
 import io.github.chains_project.maven_lockfile.data.Environment;
 import io.github.chains_project.maven_lockfile.data.GroupId;
@@ -45,7 +46,9 @@ public class LockfileTest {
                 new Pom(groupId, artifactId, version, "pom.xml", null, null, "SHA-256", "POM-CHECKSUM", null),
                 Set.of(dependencyNodeA(dependencyNodeAChild1(), dependencyNodeAChild2()), dependencyNodeB()),
                 Set.of(pluginA(), pluginB()),
-                metadata);
+                Set.of(),
+                metadata,
+                Set.of(bom()));
 
         var lock2 = new LockFile(
                 groupId,
@@ -54,7 +57,9 @@ public class LockfileTest {
                 new Pom(groupId, artifactId, version, "pom.xml", null, null, "SHA-256", "POM-CHECKSUM", null),
                 Set.of(dependencyNodeB(), dependencyNodeA(dependencyNodeAChild1(), dependencyNodeAChild2())),
                 Set.of(pluginB(), pluginA()),
-                metadata);
+                Set.of(),
+                metadata,
+                Set.of(bom()));
 
         assertThat(lock1).isEqualTo(lock2);
     }
@@ -65,6 +70,7 @@ public class LockfileTest {
                 GroupId.of("Ag"),
                 VersionNumber.of("1"),
                 null,
+                ArtifactType.of("pom"),
                 MavenScope.RUNTIME,
                 ResolvedUrl.Unresolved(),
                 RepositoryId.None(),
@@ -82,6 +88,7 @@ public class LockfileTest {
                 GroupId.of("Bg"),
                 VersionNumber.of("1"),
                 null,
+                ArtifactType.of("jar"),
                 MavenScope.RUNTIME,
                 ResolvedUrl.Unresolved(),
                 RepositoryId.None(),
@@ -95,6 +102,7 @@ public class LockfileTest {
                 GroupId.of("Ag1"),
                 VersionNumber.of("1"),
                 null,
+                ArtifactType.of("war"),
                 MavenScope.RUNTIME,
                 ResolvedUrl.Unresolved(),
                 RepositoryId.None(),
@@ -108,6 +116,7 @@ public class LockfileTest {
                 GroupId.of("Ag2"),
                 VersionNumber.of("1"),
                 null,
+                ArtifactType.of("jar"),
                 MavenScope.RUNTIME,
                 ResolvedUrl.Unresolved(),
                 RepositoryId.None(),
@@ -135,5 +144,18 @@ public class LockfileTest {
                 RepositoryId.None(),
                 "SHA-1",
                 "PB");
+    }
+
+    private Pom bom() {
+        return new Pom(
+                GroupId.of("Bom"),
+                ArtifactId.of("Bom"),
+                VersionNumber.of("1"),
+                null,
+                null,
+                null,
+                "SHA-256",
+                "CHECKSUM-BOM",
+                null);
     }
 }

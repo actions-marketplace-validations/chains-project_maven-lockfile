@@ -2,18 +2,13 @@ package it;
 
 import static com.soebes.itf.extension.assertj.MavenITAssertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import com.google.common.collect.Ordering;
 import com.soebes.itf.jupiter.extension.MavenJupiterExtension;
 import com.soebes.itf.jupiter.extension.MavenTest;
 import com.soebes.itf.jupiter.maven.MavenExecutionResult;
-import io.github.chains_project.maven_lockfile.data.ArtifactId;
-import io.github.chains_project.maven_lockfile.data.Classifier;
-import io.github.chains_project.maven_lockfile.data.GroupId;
-import io.github.chains_project.maven_lockfile.data.LockFile;
-import io.github.chains_project.maven_lockfile.data.RepositoryId;
-import io.github.chains_project.maven_lockfile.data.ResolvedUrl;
-import io.github.chains_project.maven_lockfile.data.VersionNumber;
+import io.github.chains_project.maven_lockfile.data.*;
 import io.github.chains_project.maven_lockfile.graph.DependencyNode;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -26,6 +21,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
+import org.apache.maven.model.Plugin;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 
@@ -86,6 +82,7 @@ public class IntegrationTestsIT {
     }
 
     @MavenTest
+    @SuppressWarnings("null")
     public void pluginProject(MavenExecutionResult result) throws Exception {
         // contract: if including maven plugins the lockfile should contain these and be able to calculate checksums for
         // them. Plugin dependencies should also be resolved and recorded.
@@ -105,6 +102,85 @@ public class IntegrationTestsIT {
         assertThat(lockFile.getMavenPlugins())
                 .allMatch(
                         p -> p.getDependencies() != null && !p.getDependencies().isEmpty());
+
+        lockFile.getMavenPlugins().forEach(plugin -> {
+            plugin.getDependencies().forEach(dep -> {
+                var scope = dep.getScope();
+                if (scope == null) {
+                    fail(String.format(
+                            "scope is null for dependency %s:%s:%s",
+                            dep.getGroupId().getValue(),
+                            dep.getArtifactId().getValue(),
+                            dep.getVersion().getValue()));
+                    return;
+                }
+                // Log the offending plugin that includes the unexpected scope.
+                // Null check warnings are suppressed because the .as() method always generates such a warning.
+                assertThat(scope)
+                        .as(
+                                "Scope of plugin dependency %s:%s:%s",
+                                dep.getGroupId().getValue(),
+                                dep.getArtifactId().getValue(),
+                                dep.getVersion().getValue())
+                        .isNotEqualTo(MavenScope.TEST);
+            });
+        });
+    }
+
+    @MavenTest
+    @SuppressWarnings("null")
+    public void pluginUserDependency(MavenExecutionResult result) throws Exception {
+        // contract: if including maven plugins the lockfile should contain these and be able to calculate checksums for
+        // them. Plugin dependencies should also be resolved and recorded.
+        // Note that remote does not work as the maven-lockfile plugin with SNAPSHOT version is not available on remote.
+        System.out.println("Running 'pluginUserDependency' integration test.");
+        assertThat(result).isSuccessful();
+        Path lockFilePath = findFile(result, "lockfile.json");
+        assertThat(lockFilePath).exists();
+        var lockFile = LockFile.readLockFile(lockFilePath);
+        assertThat(lockFile.getMavenPlugins()).isNotEmpty();
+        assertThat(lockFile.getMavenPlugins())
+                .allMatch(v -> !v.getChecksum().isBlank()
+                        && v.getChecksumAlgorithm().equals(lockFile.getConfig().getChecksumAlgorithm()));
+
+        // This uses the Maven lockfile plugin itself as a plugin in the test project's build lifecycle.
+        // All dependencies of this plugin should be recorded.
+        assertThat(lockFile.getMavenPlugins())
+                .allMatch(
+                        p -> p.getDependencies() != null && !p.getDependencies().isEmpty());
+
+        lockFile.getMavenPlugins().forEach(plugin -> {
+            plugin.getDependencies().forEach(dep -> {
+                var scope = dep.getScope();
+                if (scope == null) {
+                    fail(String.format(
+                            "scope is null for dependency %s:%s:%s",
+                            dep.getGroupId().getValue(),
+                            dep.getArtifactId().getValue(),
+                            dep.getVersion().getValue()));
+                    return;
+                }
+                // Log the offending plugin that includes the unexpected scope.
+                // Null check warnings are suppressed because the .as() method always generates such a warning.
+                assertThat(scope)
+                        .as(
+                                "Scope of plugin dependency %s:%s:%s",
+                                dep.getGroupId().getValue(),
+                                dep.getArtifactId().getValue(),
+                                dep.getVersion().getValue())
+                        .isNotEqualTo(MavenScope.TEST);
+                // Test that we can override the `maven-plugin-api` dependency scope from `provided` to `compile` for
+                // the maven-lockfile plugin only.
+                if (plugin.getGroupId().getValue().equals("io.github.chains-project")
+                        && plugin.getArtifactId().getValue().equals("maven-lockfile")
+                        && dep.getGroupId().getValue().equals("org.apache.maven")
+                        && dep.getArtifactId().getValue().equals("maven-plugin-api")) {
+                    assertThat(scope)
+                            .as("maven-lockifle org.apache.maven:maven-plugin-api scope")
+                            .isEqualTo(MavenScope.COMPILE);
+                }
+            });
+        });
     }
 
     @MavenTest
@@ -295,7 +371,7 @@ public class IntegrationTestsIT {
     public void classifierDependencyCheckMustFail(MavenExecutionResult result) throws Exception {
         // contract: a changed dependency should fail the build.
         // we changed the classifier id of "classifier": "sources", to "classifier": "42",
-        System.out.print("Running 'classifierDependencyCheckMustFail' integration test.");
+        System.out.println("Running 'classifierDependencyCheckMustFail' integration test.");
         assertThat(result).isFailure();
     }
 
@@ -304,7 +380,7 @@ public class IntegrationTestsIT {
         // contract: a changed dependency should generate a warning on the build.
         // if the allowValidationFailure parameter is true
         // we changed the group id of "groupId": "org.opentest4j", to "groupId": "org.opentest4j5",
-        System.out.print("Running 'singleDependencyCheckMustWarn' integration test.");
+        System.out.println("Running 'singleDependencyCheckMustWarn' integration test.");
         assertThat(result).isSuccessful();
 
         String stdout = Files.readString(result.getMavenLog().getStdout());
@@ -621,5 +697,184 @@ public class IntegrationTestsIT {
         // Local parent pom should NOT have resolved URL or repositoryId
         assertThat(parentPom.getResolved()).isNull();
         assertThat(parentPom.getRepositoryId()).isNull();
+    }
+
+    @MavenTest
+    public void artifactTypeProject(MavenExecutionResult result) throws Exception {
+        // contract: dependencies with non-jar types should have their type recorded in the lockfile
+        assertThat(result).isSuccessful();
+        Path lockFilePath = findFile(result, "lockfile.json");
+        assertThat(lockFilePath).exists();
+        var lockFile = LockFile.readLockFile(lockFilePath);
+        assertThat(lockFile.getDependencies()).isNotEmpty();
+        // Verify at least one dependency has a non-null type (the pom-type dependency)
+        assertThat(lockFile.getDependencies())
+                .anyMatch(
+                        dep -> dep.getType() != null && dep.getType().getValue().equals("pom"));
+    }
+
+    @MavenTest
+    public void freezePluginDependencies(MavenExecutionResult result) throws Exception {
+        // contract: freezing should add plugin dependencies to the frozen POM
+        assertThat(result).isSuccessful();
+        Path lockfilePomPath = findFile(result, "pom.lockfile.xml");
+        assertThat(lockfilePomPath).exists();
+        Model lockfilePom = readPom(lockfilePomPath);
+        // Verify plugins exist in the frozen POM with dependencies
+        assertThat(lockfilePom.getBuild()).isNotNull();
+        assertThat(lockfilePom.getBuild().getPlugins()).isNotEmpty();
+        assertThat(lockfilePom.getBuild().getPlugins())
+                .anyMatch(
+                        p -> p.getDependencies() != null && !p.getDependencies().isEmpty());
+        // Verify plugin dependencies only have valid scopes (compile, runtime, system)
+        for (Plugin plugin : lockfilePom.getBuild().getPlugins()) {
+            for (Dependency dep : plugin.getDependencies()) {
+                String scope = dep.getScope() != null ? dep.getScope() : "compile";
+                assertThat(scope).isIn("compile", "runtime", "system");
+            }
+        }
+    }
+
+    @MavenTest
+    @SuppressWarnings("null")
+    public void buildExtensionsMultiple(MavenExecutionResult result) throws Exception {
+        // contract: if a project uses multiple build extensions, all versioned ones should be recorded in the lockfile;
+        // extensions with no version should be skipped with a warning and not cause a build failure
+        System.out.println("Running 'buildExtensionsMultiple' integration test.");
+        assertThat(result).isSuccessful();
+        Path lockFilePath = findFile(result, "lockfile.json");
+        assertThat(lockFilePath).exists();
+        var lockFile = LockFile.readLockFile(lockFilePath);
+        assertThat(lockFile.getMavenExtensions()).isNotEmpty();
+        // wagon-ftp has no explicit version but is resolved from Maven's extensionArtifactMap — all 3 are recorded
+        assertThat(lockFile.getMavenExtensions()).hasSize(3);
+
+        // Verify all extensions have valid checksums
+        assertThat(lockFile.getMavenExtensions())
+                .allMatch(v -> !v.getChecksum().isBlank()
+                        && v.getChecksumAlgorithm().equals(lockFile.getConfig().getChecksumAlgorithm()));
+
+        // Verify specific extensions are present in sorted order (TreeSet orders by groupId then artifactId)
+        assertThat(new ArrayList<>(lockFile.getMavenExtensions()))
+                .extracting(ext ->
+                        ext.getGroupId().getValue() + ":" + ext.getArtifactId().getValue())
+                .containsExactly(
+                        "kr.motd.maven:os-maven-plugin",
+                        "org.apache.maven.wagon:wagon-ftp",
+                        "org.apache.maven.wagon:wagon-ssh");
+
+        // Verify the version-less extension triggered a warning (resolved, not skipped)
+        String stdout = Files.readString(result.getMavenLog().getStdout());
+        assertThat(stdout).contains("Extension org.apache.maven.wagon:wagon-ftp has no explicit version");
+
+        // Verify all extensions have dependencies resolved
+        assertThat(lockFile.getMavenExtensions())
+                .allMatch(ext ->
+                        ext.getDependencies() != null && !ext.getDependencies().isEmpty());
+
+        // Verify all dependencies have valid scopes and TEST scope is excluded
+        lockFile.getMavenExtensions().forEach(extension -> {
+            extension.getDependencies().forEach(dep -> {
+                var scope = dep.getScope();
+                if (scope == null) {
+                    fail(String.format(
+                            "scope is null for dependency %s:%s:%s",
+                            dep.getGroupId().getValue(),
+                            dep.getArtifactId().getValue(),
+                            dep.getVersion().getValue()));
+                    return;
+                }
+                assertThat(scope)
+                        .as(
+                                "Scope of extension dependency %s:%s:%s",
+                                dep.getGroupId().getValue(),
+                                dep.getArtifactId().getValue(),
+                                dep.getVersion().getValue())
+                        .isNotEqualTo(MavenScope.TEST);
+            });
+        });
+    }
+
+    @MavenTest
+    @SuppressWarnings("null")
+    public void buildExtensionVersionFromParent(MavenExecutionResult result) throws Exception {
+        // contract: covers two inheritance scenarios:
+        // 1. wagon-ftp declared only in parent — inherited by child with version, recorded in lockfile
+        // 2. wagon-ssh re-declared in child without version — resolved from Maven's extensionArtifactMap,
+        //    recorded with a warning that no explicit version was declared
+        System.out.println("Running 'buildExtensionVersionFromParent' integration test.");
+        assertThat(result).isSuccessful();
+        Path lockFilePath = findFile(result, "lockfile.json");
+        assertThat(lockFilePath).exists();
+        var lockFile = LockFile.readLockFile(lockFilePath);
+        assertThat(lockFile.getMavenExtensions()).hasSize(3);
+        assertThat(new ArrayList<>(lockFile.getMavenExtensions()))
+                .extracting(ext ->
+                        ext.getGroupId().getValue() + ":" + ext.getArtifactId().getValue())
+                .containsExactly(
+                        "kr.motd.maven:os-maven-plugin",
+                        "org.apache.maven.wagon:wagon-ftp",
+                        "org.apache.maven.wagon:wagon-ssh");
+        assertThat(lockFile.getMavenExtensions())
+                .allMatch(v -> !v.getChecksum().isBlank()
+                        && v.getChecksumAlgorithm().equals(lockFile.getConfig().getChecksumAlgorithm()));
+        String stdout = Files.readString(result.getMavenLog().getStdout());
+        assertThat(stdout).contains("Extension org.apache.maven.wagon:wagon-ssh has no explicit version");
+    }
+
+    @MavenTest
+    public void buildExtensionsValidationFail(MavenExecutionResult result) throws Exception {
+        // contract: if an extension checksum in the lockfile doesn't match the actual extension,
+        // validation should fail
+        System.out.println("Running 'buildExtensionsValidationFail' integration test.");
+        assertThat(result).isFailure();
+        String stdout = Files.readString(result.getMavenLog().getStdout());
+        assertThat(stdout.contains("Missing extensions")).isTrue();
+    }
+
+    @MavenTest
+    public void bomPom(MavenExecutionResult result) throws Exception {
+        // contract: the lockfile should contain BOM POMs in case any of the dependencies import them
+        System.out.println("Running 'bomPom' integration test.");
+        assertThat(result).isSuccessful();
+        Path lockFilePath = findFile(result, "lockfile.json");
+        assertThat(lockFilePath).exists();
+        var lockFile = LockFile.readLockFile(lockFilePath);
+
+        var junitDep = lockFile.getDependencies().stream()
+                .filter(dep -> dep.getGroupId().getValue().equals("org.junit.jupiter")
+                        && dep.getArtifactId().getValue().equals("junit-jupiter-api"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("junit-jupiter-api dependency not found"));
+
+        junitDep.getBoms().stream()
+                .filter(bom -> bom.getGroupId().getValue().equals("org.junit")
+                        && bom.getArtifactId().getValue().equals("junit-bom")
+                        && bom.getVersion().getValue().equals("5.11.0"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("junit-bom not found in dependency BOMs"));
+    }
+
+    @MavenTest
+    public void bomPomWithParent(MavenExecutionResult result) throws Exception {
+        // contract: if a BOM POM has a parent POM, it should be resolved in the lockfile
+        System.out.println("Running 'bomPomWithParent' integration test.");
+        assertThat(result).isSuccessful();
+        Path lockFilePath = findFile(result, "lockfile.json");
+        assertThat(lockFilePath).exists();
+        var lockFile = LockFile.readLockFile(lockFilePath);
+
+        var foundBom = lockFile.getBoms().stream()
+                .filter(bom -> bom.getGroupId().getValue().equals("io.netty")
+                        && bom.getArtifactId().getValue().equals("netty-bom")
+                        && bom.getVersion().getValue().equals("4.1.125.Final"))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("junit-jupiter-api dependency not found"));
+
+        var parent = foundBom.getParent();
+
+        assertThat(parent.getGroupId().equals("org.sonatype.oss"));
+        assertThat(parent.getArtifactId().equals("oss-parent"));
+        assertThat(parent.getVersion().equals("7"));
     }
 }

@@ -2382,3 +2382,226 @@ We'd like to thank the following people for their contributions:
 We'd like to thank the following people for their contributions:
 - Elias Lundell ([@LogFlames](https://github.com/LogFlames))
 - LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.13.1
+## Changelog
+
+## 🚀 Added
+- f14eee8 ✨ feat(ci/cd): Release workflow: Use PR squash-merge with GITHUB_TOKEN for branch protection compatibility (#1491)
+
+## 🐛 Fixed
+- f151b40 🐛 fix: Remove Plugin Test Dependencies (#1488)
+
+## 📦 Dependencies
+- 3f838f9 ⬆️ (deps): Update chains-project/maven-lockfile action to v5.13.0 (#1486)
+
+## 🏁 Release
+- 359a6b5 🔖 Releasing version 5.13.1
+- 161a05f 🔖 Setting SNAPSHOT version 5.13.1-SNAPSHOT
+
+---
+- 1903c5f chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Adam Kaplan ([@adambkaplan](https://github.com/adambkaplan))
+- Copilot ()
+- Elias Lundell ()
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.13.2
+## Changelog
+
+## 📦 Dependencies
+- b239b85 ⬆️ (deps): Update chains-project/maven-lockfile action to v5.13.1 (#1494)
+
+## 🏁 Release
+- af7da72 🔖 Releasing version 5.13.2
+- 2b5b565 🔖 Setting SNAPSHOT version 5.13.2-SNAPSHOT
+- 446b466 🔖 Releasing version 5.13.1
+
+---
+- 45309f2 Fix release workflow PR creation and merge strategy instruction (#1493)
+- b407248 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Copilot ()
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.13.3
+## Changelog
+
+## 🚀 Added
+- a4062c8 ✨ feat: Add type to lockfile (#1500)
+
+## 🐛 Fixed
+- 984eef8 🐛 ci/cd: Release: Move PR permission to job level (#1497)
+- 3cfdb3c ✏️ typo: Fix missing newlines in IT logging (#1495)
+
+## 📦 Dependencies
+- 4744510 ⬆️ (deps): Update chains-project/maven-lockfile action to v5.13.2 (#1498)
+
+## 🏁 Release
+- 531fa83 🔖 Releasing version 5.13.3
+- e861fa5 🔖 Setting SNAPSHOT version 5.13.3-SNAPSHOT
+- da14a97 🔖 Releasing version 5.13.2
+
+---
+- ef5d043 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Aman Sharma ()
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.14.0
+## Changelog
+
+## 🚀 Added
+- 221131b ✨ feat: Include plugin dependencies in freeze (#1508)
+
+## 🔄️ Changed
+- f968cc1 ♻️ refactor: Add warning on missing plugin (#1510)
+- 9a91232 ♻️ refactor: Retrieve extension for maven API (#1501)
+
+## 📦 Dependencies
+- eee94fb ⬆️ (deps): Update chains-project/maven-lockfile action to v5.13.3 (#1504)
+
+## 🏁 Release
+- 2d2ed14 🔖 Releasing version 5.14.0
+- 4cd0742 🔖 Setting SNAPSHOT version 5.13.4-SNAPSHOT
+- 0f95b74 🔖 Releasing version 5.13.3
+
+---
+- b9f189f chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.14.1
+## Changelog
+
+## 🚀 Added
+- c4ab68e ✨ feat: Parallel downloading for RemoteChecksumCalculator (#1509)
+- 3bed2f2 ✅ test: Check Artifact Version Suffixes (#1517)
+
+## 🐛 Fixed
+- cba0563 🐛 fix: Reproducibility check (#1514)
+- 1d8855b 🐛 fix: Use baseVersion for path resolution (#1506)
+
+## 📦 Dependencies
+- a36faf2 ⬆️ (deps): Update chains-project/maven-lockfile action to v5.14.0 (#1515)
+
+## 📝 Documentation
+- 0c2dca5 📝 docs: Update lockfile in README (#1518)
+
+## 🏁 Release
+- 1204b34 🔖 Releasing version 5.14.1
+- 3cf9c3b 🔖 Setting SNAPSHOT version 5.14.1-SNAPSHOT
+- 4486aed 🔖 Releasing version 5.14.0
+
+---
+- 17099c1 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Adam Kaplan ([@adambkaplan](https://github.com/adambkaplan))
+- Aman Sharma ()
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+- algomaster99 ([@algomaster99](https://github.com/algomaster99))
+
+# 5.14.2
+## Changelog
+
+## 🚀 Added
+- 5087a5f 👷 ci: Skip generate if version is newer (#1520)
+
+## 🏁 Release
+- c8ab8e4 🔖 Releasing version 5.14.2
+- 816278e 🔖 Setting SNAPSHOT version 5.14.2-SNAPSHOT
+- d12a3d7 🔖 Releasing version 5.14.1
+
+---
+- 3017e48 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.15.0
+## Changelog
+
+## 🚀 Added
+- ec334e8 ✨ feat: Include BOM POMs in the lockfile (#1516)
+- 42741aa 👷 ci: Do not run ghasum update on forks (#1526)
+
+## 🔄️ Changed
+- 05a0408 🔧 chore: set Maven compiler release version to 11 (#1522)
+
+## 📦 Dependencies
+- 8840002 ⬆️  deps(lockfile): Update maven to 3.9.14 in lockfile (#1535)
+- 55db92c ⬆️  deps(lockfile): Update maven version in lockfile (#1531)
+- 2b60ec0 ⬆️ (deps): Update chains-project/maven-lockfile action to v5.14.2 (#1524)
+- 16b2d74 ⬆️ (deps): Update chains-project/maven-lockfile action to v5.14.1 (#1523)
+
+## 🏁 Release
+- cc08dd5 🔖 Releasing version 5.15.0
+- 4babbf5 🔖 Setting SNAPSHOT version 5.14.3-SNAPSHOT
+- 32dfef3 🔖 Releasing version 5.14.2
+
+---
+- 2956c73 fix: force plexus-utils to 4.0.3 via dependencyManagement (GHSA-6fmv-xxpf-w3cw) (#1536)
+- eb380ca fix: address plexus vulnerability (#1533)
+- c4c6521 chore: update lockfile
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Aman Sharma ()
+- Bruno Pimentel ([@brunoapimentel](https://github.com/brunoapimentel))
+- Elias Lundell ([@LogFlames](https://github.com/LogFlames))
+- LogFlames ([@LogFlames](https://github.com/LogFlames))
+
+# 5.16.0
+## Changelog
+
+## 🚀 Added
+- 5ef77f3 ✨ feat: resolve parent POMs and their BOMs (#1540)
+- 9ac76fe ✨ feat: Add Maven build extensions support to lockfile (#1529)
+
+## 📦 Dependencies
+- 34ab7ca ⬆️ (deps): Update chains-project/maven-lockfile action to v5.15.0 (#1539)
+
+## 📝 Documentation
+- 053d459 📝 docs: add Codeset-generated knowledge base for Claude Code (#1538)
+
+## 🏁 Release
+- 3ddcf33 🔖 Releasing version 5.16.0
+- 6b6e06a 🔖 Setting SNAPSHOT version 5.15.1-SNAPSHOT
+- 5aa85a8 🔖 Releasing version 5.15.0
+
+---
+- c10f984 chore: Update log4j-core version to 2.25.4 (#1554)
+
+
+## Contributors
+We'd like to thank the following people for their contributions:
+- Aman Sharma ([@algomaster99](https://github.com/algomaster99))
+- Claude Sonnet 4.6 ()
+- Elias Lundell ()
+- Timotej Kubas ()
+- fz-rh ()
+- tkubas-rh ()

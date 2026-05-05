@@ -30,7 +30,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify action checksums
-        uses: chains-project/maven-lockfile/.github/actions/ghasum@0e86b9df4c4415ebe1008e705f393ede168295ba # 5.12.1
+        uses: chains-project/maven-lockfile/.github/actions/ghasum@cc08dd5de9bb2f9888b72a4ca967023df84bc0ed # 5.15.0
 
       - name: Generate action.yml
         run: mvn generate-resources resources:copy-resources -q

@@ -41,7 +41,11 @@ public class LockFile {
 
     private final Set<MavenPlugin> mavenPlugins;
 
+    private final Set<MavenExtension> mavenExtensions;
+
     private final MetaData metaData;
+
+    private final Set<Pom> boms;
 
     public LockFile(
             GroupId groupId,
@@ -50,14 +54,18 @@ public class LockFile {
             Pom pom,
             Set<DependencyNode> dependencies,
             Set<MavenPlugin> mavenPlugins,
-            MetaData metaData) {
+            Set<MavenExtension> mavenExtensions,
+            MetaData metaData,
+            Set<Pom> boms) {
         this.groupId = groupId;
         this.name = name;
         this.version = versionNumber;
         this.pom = pom;
         this.dependencies = dependencies == null ? Collections.emptySet() : dependencies;
         this.mavenPlugins = mavenPlugins == null ? Collections.emptySet() : mavenPlugins;
+        this.mavenExtensions = mavenExtensions == null ? Collections.emptySet() : mavenExtensions;
         this.metaData = metaData;
+        this.boms = boms;
     }
     /**
      * Create a lock file object from a serialized JSON string.
@@ -108,6 +116,20 @@ public class LockFile {
     public Set<MavenPlugin> getMavenPlugins() {
         return nullToEmpty(mavenPlugins);
     }
+
+    /**
+     * @return the bom poms
+     */
+    public Set<Pom> getBoms() {
+        return nullToEmpty(boms);
+    }
+
+    /**
+     * @return the mavenExtensions
+     */
+    public Set<MavenExtension> getMavenExtensions() {
+        return nullToEmpty(mavenExtensions);
+    }
     /**
      * @return the metadata about the environment in which the lock file was generated
      */
@@ -124,7 +146,16 @@ public class LockFile {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, groupId, version, lockfileVersion, pom, dependencies, nullToEmpty(mavenPlugins));
+        return Objects.hash(
+                name,
+                groupId,
+                version,
+                lockfileVersion,
+                pom,
+                dependencies,
+                nullToEmpty(mavenPlugins),
+                nullToEmpty(mavenExtensions),
+                nullToEmpty(boms));
     }
 
     @Override
@@ -141,7 +172,9 @@ public class LockFile {
                 && Objects.equals(version, other.version)
                 && lockfileVersion == other.lockfileVersion
                 && Objects.equals(nullToEmpty(dependencies), nullToEmpty(other.dependencies))
-                && Objects.equals(nullToEmpty(mavenPlugins), nullToEmpty(other.mavenPlugins));
+                && Objects.equals(nullToEmpty(mavenPlugins), nullToEmpty(other.mavenPlugins))
+                && Objects.equals(nullToEmpty(mavenExtensions), nullToEmpty(other.mavenExtensions))
+                && Objects.equals(nullToEmpty(boms), nullToEmpty(other.boms));
     }
 
     private static <T> Set<T> nullToEmpty(Set<T> set) {
